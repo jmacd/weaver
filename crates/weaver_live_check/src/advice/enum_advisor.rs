@@ -7,9 +7,9 @@ use std::rc::Rc;
 use weaver_checker::{FindingLevel, PolicyFinding};
 use weaver_semconv::attribute::{AttributeType, PrimitiveOrArrayTypeSpec, ValueSpec};
 
-use super::{Advisor, FindingBuilder};
+use super::{Advisor, FindingBuilder, FindingEmitter};
 use crate::{
-    otlp_logger::OtlpEmitter, Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
+    Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
     ATTRIBUTE_NAME_ADVICE_CONTEXT_KEY, ATTRIBUTE_VALUE_ADVICE_CONTEXT_KEY,
     UNDEFINED_ENUM_VARIANT_ADVICE_TYPE,
 };
@@ -24,7 +24,7 @@ impl Advisor for EnumAdvisor {
         signal: &Sample,
         registry_attribute: Option<Rc<VersionedAttribute>>,
         _registry_group: Option<Rc<VersionedSignal>>,
-        otlp_emitter: Option<Rc<OtlpEmitter>>,
+        emitter: Option<Rc<dyn FindingEmitter>>,
     ) -> Result<Vec<PolicyFinding>, Error> {
         match sample {
             SampleRef::Attribute(sample_attribute) => {
@@ -83,7 +83,7 @@ impl Advisor for EnumAdvisor {
                                 .signal(signal)
                                 .build_and_emit(
                                     &sample,
-                                    otlp_emitter.as_deref(),
+                                    emitter.as_deref(),
                                     signal,
                                 );
 

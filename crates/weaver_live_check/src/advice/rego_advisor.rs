@@ -7,9 +7,9 @@ use std::{collections::BTreeMap, path::PathBuf, rc::Rc};
 use weaver_checker::{Engine, PolicyFinding};
 use weaver_forge::jq;
 
-use super::{emit_findings, Advisor};
+use super::{emit_findings, Advisor, FindingEmitter};
 use crate::{
-    live_checker::LiveChecker, otlp_logger::OtlpEmitter, Error, Sample, SampleRef,
+    live_checker::LiveChecker, Error, Sample, SampleRef,
     VersionedAttribute, VersionedSignal, DEFAULT_LIVE_CHECK_JQ, DEFAULT_LIVE_CHECK_REGO,
     DEFAULT_LIVE_CHECK_REGO_POLICY_PATH,
 };
@@ -106,7 +106,7 @@ impl Advisor for RegoAdvisor {
         signal: &Sample,
         registry_attribute: Option<Rc<VersionedAttribute>>,
         registry_group: Option<Rc<VersionedSignal>>,
-        otlp_emitter: Option<Rc<OtlpEmitter>>,
+        emitter: Option<Rc<dyn FindingEmitter>>,
     ) -> Result<Vec<PolicyFinding>, Error> {
         let mut findings = self.check(RegoInput {
             sample: sample.clone(),
@@ -125,7 +125,7 @@ impl Advisor for RegoAdvisor {
         }
 
         // Emit each finding if emitter available
-        emit_findings(&findings, &sample, otlp_emitter.as_deref(), signal);
+        emit_findings(&findings, &sample, emitter.as_deref(), signal);
 
         Ok(findings)
     }

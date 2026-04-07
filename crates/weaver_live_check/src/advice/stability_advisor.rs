@@ -7,9 +7,9 @@ use std::rc::Rc;
 use weaver_checker::{FindingLevel, PolicyFinding};
 use weaver_semconv::stability::Stability;
 
-use super::{Advisor, FindingBuilder};
+use super::{Advisor, FindingBuilder, FindingEmitter};
 use crate::{
-    otlp_logger::OtlpEmitter, Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
+    Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
     ATTRIBUTE_NAME_ADVICE_CONTEXT_KEY, EVENT_NAME_ADVICE_CONTEXT_KEY,
     METRIC_NAME_ADVICE_CONTEXT_KEY, NOT_STABLE_ADVICE_TYPE, STABILITY_ADVICE_CONTEXT_KEY,
 };
@@ -25,7 +25,7 @@ impl Advisor for StabilityAdvisor {
         parent_signal: &Sample,
         registry_attribute: Option<Rc<VersionedAttribute>>,
         registry_group: Option<Rc<VersionedSignal>>,
-        otlp_emitter: Option<Rc<OtlpEmitter>>,
+        emitter: Option<Rc<dyn FindingEmitter>>,
     ) -> Result<Vec<PolicyFinding>, Error> {
         match sample {
             SampleRef::Attribute(sample_attribute) => {
@@ -45,7 +45,7 @@ impl Advisor for StabilityAdvisor {
                                 ))
                                 .level(FindingLevel::Improvement)
                                 .signal(parent_signal)
-                                .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                             findings.push(finding);
                         }
@@ -71,7 +71,7 @@ impl Advisor for StabilityAdvisor {
                                 ))
                                 .level(FindingLevel::Improvement)
                                 .signal(parent_signal)
-                                .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                             findings.push(finding);
                         }
@@ -97,7 +97,7 @@ impl Advisor for StabilityAdvisor {
                                 ))
                                 .level(FindingLevel::Improvement)
                                 .signal(parent_signal)
-                                .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                             findings.push(finding);
                         }

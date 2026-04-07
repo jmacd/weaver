@@ -19,5 +19,6 @@ workspace = true
 weaver_checker = { path = "../weaver_checker" }
 weaver_resolved_schema = { path = "../weaver_resolved_schema", default-features = false }
 weaver_forge = { path = "../weaver_forge", default-features = false }
+weaver_live_check = { path = "../weaver_live_check", default-features = false }
 serde.workspace = true
 serde_json.workspace = true

@@ -7,9 +7,9 @@ use std::rc::Rc;
 use weaver_checker::{FindingLevel, PolicyFinding};
 use weaver_semconv::deprecated::Deprecated;
 
-use super::{Advisor, FindingBuilder};
+use super::{Advisor, FindingBuilder, FindingEmitter};
 use crate::{
-    otlp_logger::OtlpEmitter, Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
+    Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
     ATTRIBUTE_NAME_ADVICE_CONTEXT_KEY, DEPRECATED_ADVICE_TYPE, DEPRECATION_NOTE_ADVICE_CONTEXT_KEY,
     DEPRECATION_REASON_ADVICE_CONTEXT_KEY, EVENT_NAME_ADVICE_CONTEXT_KEY,
     METRIC_NAME_ADVICE_CONTEXT_KEY,
@@ -51,7 +51,7 @@ impl Advisor for DeprecatedAdvisor {
         signal: &Sample,
         registry_attribute: Option<Rc<VersionedAttribute>>,
         registry_group: Option<Rc<VersionedSignal>>,
-        otlp_emitter: Option<Rc<OtlpEmitter>>,
+        emitter: Option<Rc<dyn FindingEmitter>>,
     ) -> Result<Vec<PolicyFinding>, Error> {
         match sample {
             SampleRef::Attribute(sample_attribute) => {
@@ -68,7 +68,7 @@ impl Advisor for DeprecatedAdvisor {
                             .message(format_deprecation_message("Attribute", name, deprecated))
                             .level(FindingLevel::Violation)
                             .signal(signal)
-                            .build_and_emit(&sample, otlp_emitter.as_deref(), signal);
+                            .build_and_emit(&sample, emitter.as_deref(), signal);
 
                         findings.push(finding);
                     }
@@ -89,7 +89,7 @@ impl Advisor for DeprecatedAdvisor {
                             .message(format_deprecation_message("Metric", name, deprecated))
                             .level(FindingLevel::Violation)
                             .signal(signal)
-                            .build_and_emit(&sample, otlp_emitter.as_deref(), signal);
+                            .build_and_emit(&sample, emitter.as_deref(), signal);
 
                         findings.push(finding);
                     }
@@ -110,7 +110,7 @@ impl Advisor for DeprecatedAdvisor {
                             .message(format_deprecation_message("Event", name, deprecated))
                             .level(FindingLevel::Violation)
                             .signal(signal)
-                            .build_and_emit(&sample, otlp_emitter.as_deref(), signal);
+                            .build_and_emit(&sample, emitter.as_deref(), signal);
 
                         findings.push(finding);
                     }

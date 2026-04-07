@@ -309,7 +309,7 @@ impl LiveCheckRunner for SampleMetric {
                 .signal(parent_signal)
                 .build_and_emit(
                     &SampleRef::Metric(self),
-                    live_checker.otlp_emitter.as_ref().map(|rc| rc.as_ref()),
+                    live_checker.emitter.as_ref().map(|rc| rc.as_ref()),
                     parent_signal,
                 );
 
@@ -321,7 +321,7 @@ impl LiveCheckRunner for SampleMetric {
                 parent_signal,
                 None,
                 semconv_metric.clone(),
-                live_checker.otlp_emitter.clone(),
+                live_checker.emitter.clone(),
             )?;
             result.add_advice_list(advice_list);
         }

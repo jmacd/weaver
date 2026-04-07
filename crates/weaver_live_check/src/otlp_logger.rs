@@ -129,6 +129,21 @@ impl OtlpEmitter {
     }
 }
 
+impl crate::advice::FindingEmitter for OtlpEmitter {
+    fn emit_finding(
+        &self,
+        finding: &PolicyFinding,
+        sample_ref: &SampleRef<'_>,
+        parent_signal: &Sample,
+    ) {
+        self.emit_finding(finding, sample_ref, parent_signal);
+    }
+
+    fn shutdown(&self) -> Result<(), Error> {
+        self.shutdown()
+    }
+}
+
 /// Build the attribute list for a finding log record from the finding,
 /// sample reference, and parent signal context.
 fn build_finding_attributes(

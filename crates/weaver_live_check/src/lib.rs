@@ -35,6 +35,7 @@ pub mod json_stdin_ingester;
 /// Live checker
 pub mod live_checker;
 /// OTLP logger for emitting policy findings as log records
+#[cfg(feature = "io")]
 pub mod otlp_logger;
 /// The intermediary format for attributes
 pub mod sample_attribute;
@@ -525,7 +526,7 @@ pub trait Advisable {
                 parent_signal,
                 None,
                 parent_group.clone(),
-                live_checker.otlp_emitter.clone(),
+                live_checker.emitter.clone(),
             )?;
             result.add_advice_list(advice_list);
         }

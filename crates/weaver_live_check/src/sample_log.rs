@@ -64,7 +64,7 @@ impl LiveCheckRunner for SampleLog {
                     .signal(parent_signal)
                     .build_and_emit(
                         &SampleRef::Log(self),
-                        live_checker.otlp_emitter.as_ref().map(|rc| rc.as_ref()),
+                        live_checker.emitter.as_ref().map(|rc| rc.as_ref()),
                         parent_signal,
                     );
                 result.add_advice(finding);
@@ -77,7 +77,7 @@ impl LiveCheckRunner for SampleLog {
                 parent_signal,
                 None,
                 semconv_event.clone(),
-                live_checker.otlp_emitter.clone(),
+                live_checker.emitter.clone(),
             )?;
             result.add_advice_list(advice_list);
         }

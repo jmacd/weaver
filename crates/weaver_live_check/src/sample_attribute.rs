@@ -197,7 +197,7 @@ impl LiveCheckRunner for SampleAttribute {
                 .signal(parent_signal)
                 .build_and_emit(
                     &SampleRef::Attribute(self),
-                    live_checker.otlp_emitter.as_ref().map(|rc| rc.as_ref()),
+                    live_checker.emitter.as_ref().map(|rc| rc.as_ref()),
                     parent_signal,
                 );
 
@@ -213,7 +213,7 @@ impl LiveCheckRunner for SampleAttribute {
                         .signal(parent_signal)
                         .build_and_emit(
                             &SampleRef::Attribute(self),
-                            live_checker.otlp_emitter.as_ref().map(|rc| rc.as_ref()),
+                            live_checker.emitter.as_ref().map(|rc| rc.as_ref()),
                             parent_signal,
                         );
 
@@ -229,7 +229,7 @@ impl LiveCheckRunner for SampleAttribute {
                 parent_signal,
                 semconv_attribute.clone(),
                 parent_group.clone(),
-                live_checker.otlp_emitter.clone(),
+                live_checker.emitter.clone(),
             )?;
             result.add_advice_list(advice_list);
         }

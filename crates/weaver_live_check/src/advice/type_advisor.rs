@@ -12,9 +12,9 @@ use weaver_semconv::attribute::{
     TemplateTypeSpec,
 };
 
-use super::{emit_findings, Advisor, FindingBuilder};
+use super::{emit_findings, Advisor, FindingBuilder, FindingEmitter};
 use crate::{
-    otlp_logger::OtlpEmitter, sample_attribute::SampleAttribute, sample_metric::SampleInstrument,
+    sample_attribute::SampleAttribute, sample_metric::SampleInstrument,
     Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
     ATTRIBUTE_NAME_ADVICE_CONTEXT_KEY, ATTRIBUTE_TYPE_ADVICE_CONTEXT_KEY,
     EXPECTED_VALUE_ADVICE_CONTEXT_KEY, INSTRUMENT_ADVICE_CONTEXT_KEY, TYPE_MISMATCH_ADVICE_TYPE,
@@ -162,7 +162,7 @@ impl Advisor for TypeAdvisor {
         parent_signal: &Sample,
         registry_attribute: Option<Rc<VersionedAttribute>>,
         registry_group: Option<Rc<VersionedSignal>>,
-        otlp_emitter: Option<Rc<OtlpEmitter>>,
+        emitter: Option<Rc<dyn FindingEmitter>>,
     ) -> Result<Vec<PolicyFinding>, Error> {
         match sample {
             SampleRef::Attribute(sample_attribute) => {
@@ -205,7 +205,7 @@ impl Advisor for TypeAdvisor {
                                         ))
                                         .level(FindingLevel::Violation)
                                         .signal(parent_signal)
-                                        .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                        .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                                     return Ok(vec![finding]);
                                 } else {
@@ -228,7 +228,7 @@ impl Advisor for TypeAdvisor {
                                 ))
                                 .level(FindingLevel::Violation)
                                 .signal(parent_signal)
-                                .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                             Ok(vec![finding])
                         } else {
@@ -252,7 +252,7 @@ impl Advisor for TypeAdvisor {
                                 .message(format!("Instrument '{name}' is not supported"))
                                 .level(FindingLevel::Violation)
                                 .signal(parent_signal)
-                                .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                             advice_list.push(finding);
                         }
@@ -269,7 +269,7 @@ impl Advisor for TypeAdvisor {
                                         ))
                                         .level(FindingLevel::Violation)
                                         .signal(parent_signal)
-                                        .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                        .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                                     advice_list.push(finding);
                                 }
@@ -290,7 +290,7 @@ impl Advisor for TypeAdvisor {
                                 ))
                                 .level(FindingLevel::Violation)
                                 .signal(parent_signal)
-                                .build_and_emit(&sample, otlp_emitter.as_deref(), parent_signal);
+                                .build_and_emit(&sample, emitter.as_deref(), parent_signal);
 
                             advice_list.push(finding);
                         }
@@ -319,7 +319,7 @@ impl Advisor for TypeAdvisor {
                     emit_findings(
                         &advice_list,
                         &sample,
-                        otlp_emitter.as_deref(),
+                        emitter.as_deref(),
                         parent_signal,
                     );
 
@@ -349,7 +349,7 @@ impl Advisor for TypeAdvisor {
                     emit_findings(
                         &advice_list,
                         &sample,
-                        otlp_emitter.as_deref(),
+                        emitter.as_deref(),
                         parent_signal,
                     );
 
@@ -379,7 +379,7 @@ impl Advisor for TypeAdvisor {
                     emit_findings(
                         &advice_list,
                         &sample,
-                        otlp_emitter.as_deref(),
+                        emitter.as_deref(),
                         parent_signal,
                     );
 

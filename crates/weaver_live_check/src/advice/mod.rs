@@ -6,9 +6,7 @@ use serde_json::Value as JsonValue;
 use std::rc::Rc;
 use weaver_checker::{FindingLevel, PolicyFinding};
 
-use crate::{
-    otlp_logger::OtlpEmitter, Error, Sample, SampleRef, VersionedAttribute, VersionedSignal,
-};
+use crate::{Error, Sample, SampleRef, VersionedAttribute, VersionedSignal};
 
 // Internal modules
 mod deprecated_advisor;
@@ -24,6 +22,27 @@ pub use rego_advisor::RegoAdvisor;
 pub use stability_advisor::StabilityAdvisor;
 pub use type_advisor::TypeAdvisor;
 
+/// Trait for emitting policy findings to an external system.
+///
+/// Implementations can send findings to OTLP endpoints, log files,
+/// or any other destination. The advisor evaluation logic is decoupled
+/// from the emission mechanism.
+pub trait FindingEmitter {
+    /// Emit a single policy finding.
+    fn emit_finding(
+        &self,
+        finding: &PolicyFinding,
+        sample_ref: &SampleRef<'_>,
+        parent_signal: &Sample,
+    );
+
+    /// Flush any buffered findings and release resources.
+    /// The default implementation is a no-op.
+    fn shutdown(&self) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
 /// Provides advice on a sample
 pub trait Advisor {
     /// Provide advice on a sample
@@ -33,7 +52,7 @@ pub trait Advisor {
         signal: &Sample,
         registry_attribute: Option<Rc<VersionedAttribute>>,
         registry_group: Option<Rc<VersionedSignal>>,
-        otlp_emitter: Option<Rc<OtlpEmitter>>,
+        emitter: Option<Rc<dyn FindingEmitter>>,
     ) -> Result<Vec<PolicyFinding>, Error>;
 }
 
@@ -106,7 +125,7 @@ impl FindingBuilder {
     pub fn build_and_emit(
         self,
         sample: &SampleRef<'_>,
-        emitter: Option<&OtlpEmitter>,
+        emitter: Option<&dyn FindingEmitter>,
         parent_signal: &Sample,
     ) -> PolicyFinding {
         let finding = self.build();
@@ -121,7 +140,7 @@ impl FindingBuilder {
 pub(crate) fn emit_findings(
     findings: &[PolicyFinding],
     sample: &SampleRef<'_>,
-    emitter: Option<&OtlpEmitter>,
+    emitter: Option<&dyn FindingEmitter>,
     parent_signal: &Sample,
 ) {
     if let Some(emitter) = emitter {
@@ -135,7 +154,6 @@ pub(crate) fn emit_findings(
 mod tests {
     use std::rc::Rc;
 
-    use crate::otlp_logger::OtlpEmitter;
     use crate::sample_attribute::SampleAttribute;
 
     use super::*;
@@ -147,6 +165,12 @@ mod tests {
     use weaver_semconv::deprecated::Deprecated;
     use weaver_semconv::stability::Stability;
 
+    /// A no-op emitter for testing that the emitter code path is exercised.
+    struct TestEmitter;
+    impl FindingEmitter for TestEmitter {
+        fn emit_finding(&self, _: &PolicyFinding, _: &SampleRef<'_>, _: &Sample) {}
+    }
+
     fn create_sample_attribute(name: &str) -> SampleAttribute {
         SampleAttribute {
             name: name.to_owned(),
@@ -157,9 +181,8 @@ mod tests {
     }
 
     #[test]
-    fn test_advisors_with_otlp_emitter() {
-        // Test that advisors work with an OTLP emitter to exercise emit_finding code paths
-        let emitter = Some(Rc::new(OtlpEmitter::new_stdout()));
+    fn test_advisors_with_emitter() {
+        let emitter: Option<Rc<dyn FindingEmitter>> = Some(Rc::new(TestEmitter));
 
         // Test DeprecatedAdvisor
         let mut deprecated_advisor = DeprecatedAdvisor;
