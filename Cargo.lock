@@ -6055,6 +6055,7 @@ dependencies = [
  "serde",
  "serde_json",
  "weaver_checker",
+ "weaver_forge",
  "weaver_resolved_schema",
 ]
 

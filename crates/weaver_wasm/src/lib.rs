@@ -18,12 +18,12 @@ use std::cell::RefCell;
 use std::slice;
 
 use weaver_checker::{Engine, PolicyStage};
-use weaver_resolved_schema::registry::Registry;
+use weaver_forge::registry::ResolvedRegistry;
 
 // Global state (single-threaded WASM).
 thread_local! {
     static ENGINE: RefCell<Option<Engine>> = const { RefCell::new(None) };
-    static REGISTRY: RefCell<Option<Registry>> = const { RefCell::new(None) };
+    static REGISTRY: RefCell<Option<ResolvedRegistry>> = const { RefCell::new(None) };
 }
 
 /// A policy entry as received from the host via JSON.
@@ -140,7 +140,7 @@ pub extern "C" fn set_data(data_ptr: *const u8, data_len: u32) -> i32 {
 pub extern "C" fn set_registry(registry_ptr: *const u8, registry_len: u32) -> i32 {
     let registry_bytes = unsafe { slice::from_raw_parts(registry_ptr, registry_len as usize) };
 
-    let registry: Registry = match serde_json::from_slice(registry_bytes) {
+    let registry: ResolvedRegistry = match serde_json::from_slice(registry_bytes) {
         Ok(r) => r,
         Err(_) => return 1,
     };

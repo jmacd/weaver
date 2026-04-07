@@ -317,6 +317,7 @@ impl From<std::fmt::Error> for Error {
     }
 }
 
+#[cfg(feature = "codegen")]
 #[must_use]
 pub(crate) fn jinja_err_convert(e: minijinja::Error) -> Error {
     Error::WriteGeneratedCodeFailed {

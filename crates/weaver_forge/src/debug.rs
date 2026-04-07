@@ -9,6 +9,7 @@ use std::error::Error;
 
 /// Return a nice summary of the error including the chain of causes.
 /// Only the last error in the chain is displayed with a full stack trace.
+#[cfg(feature = "codegen")]
 pub(crate) fn error_summary(error: minijinja::Error) -> String {
     let mut errors = Vec::new();
     let mut curr_error: &dyn Error = &error;
