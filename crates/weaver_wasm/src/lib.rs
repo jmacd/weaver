@@ -4,26 +4,53 @@
 //!
 //! This crate compiles to a `.wasm` module that can be loaded in-process by a
 //! Go (or other) host via a WASM runtime such as wazero. It exposes the Rego
-//! policy engine from `weaver_checker` through a C-ABI interface.
+//! policy engine from `weaver_checker` and the live-check advisors from
+//! `weaver_live_check` through a C-ABI interface.
+//!
+//! Findings emitted during evaluation are collected in memory and returned
+//! to the host as a JSON array, which the Go side can use to synthesize
+//! `plog.Logs` data or forward to its configured logs SDK.
 //!
 //! # Exported functions
 //!
 //! * `alloc(len) -> ptr` — allocate `len` bytes in the WASM module's memory.
 //! * `dealloc(ptr, len)` — free a previous allocation.
 //! * `init(policies_ptr, policies_len) -> status` — load Rego policies.
-//! * `check(input_ptr, input_len, result_ptr_out, result_len_out) -> status` — evaluate policies.
-//! * `free_result(ptr, len)` — free a result buffer returned by `check`.
+//! * `set_data(data_ptr, data_len) -> status` — set policy engine data.
+//! * `set_registry(registry_ptr, registry_len) -> status` — load resolved registry.
+//! * `check(input_ptr, input_len, stage, result_ptr_out, result_len_out) -> status` — evaluate policies.
+//! * `get_findings(result_ptr_out, result_len_out) -> status` — retrieve collected findings.
+//! * `free_result(ptr, len)` — free a result buffer.
 
 use std::cell::RefCell;
 use std::slice;
 
-use weaver_checker::{Engine, PolicyStage};
+use weaver_checker::{Engine, PolicyFinding, PolicyStage};
 use weaver_forge::registry::ResolvedRegistry;
+use weaver_live_check::advice::FindingEmitter;
+use weaver_live_check::{Sample, SampleRef};
 
 // Global state (single-threaded WASM).
 thread_local! {
     static ENGINE: RefCell<Option<Engine>> = const { RefCell::new(None) };
     static REGISTRY: RefCell<Option<ResolvedRegistry>> = const { RefCell::new(None) };
+    static COLLECTED_FINDINGS: RefCell<Vec<PolicyFinding>> = const { RefCell::new(Vec::new()) };
+}
+
+/// A finding emitter that collects findings in memory for return to the host.
+struct CollectingEmitter;
+
+impl FindingEmitter for CollectingEmitter {
+    fn emit_finding(
+        &self,
+        finding: &PolicyFinding,
+        _sample_ref: &SampleRef<'_>,
+        _parent_signal: &Sample,
+    ) {
+        COLLECTED_FINDINGS.with(|f| {
+            f.borrow_mut().push(finding.clone());
+        });
+    }
 }
 
 /// A policy entry as received from the host via JSON.
@@ -225,7 +252,7 @@ pub extern "C" fn check(
     })
 }
 
-/// Free a result buffer previously returned by `check`.
+/// Free a result buffer previously returned by `check` or `get_findings`.
 #[no_mangle]
 pub extern "C" fn free_result(ptr: *const u8, len: u32) {
     if ptr.is_null() || len == 0 {
@@ -235,6 +262,46 @@ pub extern "C" fn free_result(ptr: *const u8, len: u32) {
     unsafe {
         let _ = Vec::from_raw_parts(ptr as *mut u8, len as usize, len as usize);
     };
+}
+
+/// Drain all findings collected by the `CollectingEmitter` and return them
+/// as a JSON array.
+///
+/// Each finding is a `PolicyFinding` object with fields: `id`, `level`,
+/// `message`, `context`, `signal_type`, `signal_name`.
+///
+/// The Go host can use this JSON to synthesize `plog.Logs` records and
+/// inject them into the collector pipeline.
+///
+/// After this call the internal buffer is empty. The caller must free the
+/// returned buffer with `free_result`.
+///
+/// Returns 0 on success, 2 on serialization error.
+#[no_mangle]
+pub extern "C" fn get_findings(
+    result_ptr_out: *mut *const u8,
+    result_len_out: *mut u32,
+) -> i32 {
+    let findings: Vec<PolicyFinding> = COLLECTED_FINDINGS.with(|f| {
+        let mut findings = f.borrow_mut();
+        std::mem::take(&mut *findings)
+    });
+
+    let result_json = match serde_json::to_vec(&findings) {
+        Ok(j) => j,
+        Err(_) => return 2,
+    };
+
+    let len = result_json.len();
+    let ptr = result_json.as_ptr();
+    std::mem::forget(result_json);
+
+    unsafe {
+        *result_ptr_out = ptr;
+        *result_len_out = len as u32;
+    }
+
+    0
 }
 
 #[cfg(test)]
@@ -313,6 +380,64 @@ mod tests {
             serde_json::from_slice(result_bytes).unwrap();
         assert!(findings.is_empty(), "no violations expected");
 
+        free_result(result_ptr, result_len);
+    }
+
+    #[test]
+    fn test_collecting_emitter_and_get_findings() {
+        // Verify that the CollectingEmitter buffers findings and
+        // get_findings returns + drains them.
+        use std::rc::Rc;
+
+        let emitter: Rc<dyn FindingEmitter> = Rc::new(CollectingEmitter);
+
+        // Emit a finding
+        let finding = PolicyFinding {
+            id: "test_id".to_owned(),
+            context: None,
+            message: "test message".to_owned(),
+            level: weaver_checker::FindingLevel::Violation,
+            signal_type: Some("span".to_owned()),
+            signal_name: Some("http.request".to_owned()),
+        };
+
+        let sample = weaver_live_check::sample_attribute::SampleAttribute {
+            name: "test.attr".to_owned(),
+            value: None,
+            r#type: None,
+            live_check_result: None,
+        };
+        let parent = Sample::Attribute(sample.clone());
+        let sample_ref = SampleRef::Attribute(&sample);
+
+        emitter.emit_finding(&finding, &sample_ref, &parent);
+        emitter.emit_finding(&finding, &sample_ref, &parent);
+
+        // Retrieve via get_findings
+        let mut result_ptr: *const u8 = std::ptr::null();
+        let mut result_len: u32 = 0;
+        let status = get_findings(&mut result_ptr, &mut result_len);
+        assert_eq!(status, 0);
+
+        let result_bytes = unsafe { slice::from_raw_parts(result_ptr, result_len as usize) };
+        let findings: Vec<serde_json::Value> =
+            serde_json::from_slice(result_bytes).expect("valid JSON");
+        assert_eq!(findings.len(), 2);
+        assert_eq!(findings[0]["id"], "test_id");
+        assert_eq!(findings[0]["signal_type"], "span");
+        assert_eq!(findings[0]["signal_name"], "http.request");
+        free_result(result_ptr, result_len);
+
+        // Second call should return empty (buffer was drained)
+        let mut result_ptr: *const u8 = std::ptr::null();
+        let mut result_len: u32 = 0;
+        let status = get_findings(&mut result_ptr, &mut result_len);
+        assert_eq!(status, 0);
+
+        let result_bytes = unsafe { slice::from_raw_parts(result_ptr, result_len as usize) };
+        let findings: Vec<serde_json::Value> =
+            serde_json::from_slice(result_bytes).unwrap();
+        assert!(findings.is_empty(), "buffer should be drained");
         free_result(result_ptr, result_len);
     }
 }
