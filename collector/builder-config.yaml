@@ -1,0 +1,22 @@
+# OpenTelemetry Collector builder manifest for Weaver live-check PoC.
+#
+# Build with:
+#   builder --config=collector/builder-config.yaml --output-path=collector/build
+#
+dist:
+  name: weaver-collector
+  description: Minimal OTel Collector with Weaver live-check processor
+  output_path: ./collector/build
+  version: 0.1.0
+  otelcol_version: 0.149.0
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.149.0
+
+processors:
+  - gomod: github.com/open-telemetry/weaver/collector/weaverprocessor v0.0.0
+    path: ./collector/weaverprocessor
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.149.0
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.149.0

@@ -61,3 +61,6 @@ ui/package-lock.json
 
 # claude
 .claude/
+# Collector build artifacts
+collector/build/
+collector/weaver_wasm.wasm
