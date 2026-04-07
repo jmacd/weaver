@@ -11,19 +11,28 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["io"]
+io = [
+    "dep:ureq",
+    "weaver_common/io",
+    "jsonschema/resolve-http",
+    "jsonschema/resolve-file",
+]
+openapi = ["utoipa"]
+
 [dev-dependencies]
 serde_json.workspace = true
 tempfile.workspace = true
 walkdir.workspace = true
 
 [dependencies]
-weaver_common = { path = "../weaver_common" }
+weaver_common = { path = "../weaver_common", default-features = false }
 
 serde.workspace = true
 serde_yaml.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-ureq.workspace = true
 miette.workspace = true
 schemars.workspace = true
 regex.workspace = true
@@ -33,10 +42,10 @@ log.workspace = true
 url.workspace = true
 
 glob = "0.3.3"
-jsonschema = "0.40.0"        # JSON Schema validation used to enhance error messages
+jsonschema = { version = "0.40.0", default-features = false }
 saphyr = "0.0.6"             # YAML parser preserving span information (location in file)
 utoipa = { workspace = true, optional = true }
 
-[features]
-openapi = ["utoipa"]
+# Gated behind io
+ureq = { workspace = true, optional = true }
 

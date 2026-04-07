@@ -18,10 +18,12 @@ use std::cell::RefCell;
 use std::slice;
 
 use weaver_checker::{Engine, PolicyStage};
+use weaver_resolved_schema::registry::Registry;
 
-// Global policy engine instance (single-threaded WASM).
+// Global state (single-threaded WASM).
 thread_local! {
     static ENGINE: RefCell<Option<Engine>> = const { RefCell::new(None) };
+    static REGISTRY: RefCell<Option<Registry>> = const { RefCell::new(None) };
 }
 
 /// A policy entry as received from the host via JSON.
@@ -126,6 +128,28 @@ pub extern "C" fn set_data(data_ptr: *const u8, data_len: u32) -> i32 {
             Err(_) => 2,
         }
     })
+}
+
+/// Load a resolved semantic convention registry.
+///
+/// `registry_ptr` / `registry_len` point to a UTF-8 JSON representation of a
+/// resolved `Registry` (as produced by `weaver registry resolve`).
+///
+/// Returns 0 on success, 1 on JSON parse error.
+#[no_mangle]
+pub extern "C" fn set_registry(registry_ptr: *const u8, registry_len: u32) -> i32 {
+    let registry_bytes = unsafe { slice::from_raw_parts(registry_ptr, registry_len as usize) };
+
+    let registry: Registry = match serde_json::from_slice(registry_bytes) {
+        Ok(r) => r,
+        Err(_) => return 1,
+    };
+
+    REGISTRY.with(|r| {
+        *r.borrow_mut() = Some(registry);
+    });
+
+    0
 }
 
 /// Evaluate the loaded policies against an input document.

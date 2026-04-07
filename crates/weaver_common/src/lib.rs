@@ -10,6 +10,10 @@ pub mod result;
 pub mod test;
 #[cfg(feature = "io")]
 pub mod vdir;
+#[cfg(not(feature = "io"))]
+pub mod vdir_types;
+#[cfg(not(feature = "io"))]
+pub use vdir_types as vdir;
 
 use crate::diagnostic::{DiagnosticMessage, DiagnosticMessages};
 use crate::error::{format_errors, WeaverError};

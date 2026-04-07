@@ -11,10 +11,14 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["io"]
+io = ["weaver_common/io", "weaver_version/io", "weaver_semconv/io"]
+
 [dependencies]
-weaver_common = { path = "../weaver_common" }
-weaver_version = { path = "../weaver_version" }
-weaver_semconv = { path = "../weaver_semconv" }
+weaver_common = { path = "../weaver_common", default-features = false }
+weaver_version = { path = "../weaver_version", default-features = false }
+weaver_semconv = { path = "../weaver_semconv", default-features = false }
 
 thiserror.workspace = true
 serde.workspace = true

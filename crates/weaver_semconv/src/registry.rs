@@ -5,6 +5,7 @@
 use crate::attribute::AttributeSpecWithProvenance;
 use crate::group::{GroupSpecWithProvenance, ImportsWithProvenance};
 use crate::manifest::{DefinitionRegistryManifest, RegistryManifest};
+#[cfg(feature = "io")]
 use crate::registry_repo::RegistryRepo;
 use crate::schema_url::SchemaUrl;
 use crate::semconv::{SemConvSpecV1WithProvenance, SemConvSpecWithProvenance};
@@ -112,6 +113,7 @@ impl SemConvRegistry {
     ///
     /// * `registry_repo` - The semantic convention registry.
     /// * `semconv_specs` - The list of semantic convention specs to load.
+    #[cfg(feature = "io")]
     pub fn from_semconv_specs(
         registry_repo: &RegistryRepo,
         semconv_specs: Vec<SemConvSpecWithProvenance>,
@@ -258,11 +260,13 @@ mod tests {
     use crate::group::{GroupSpec, GroupType};
     use crate::provenance::Provenance;
     use crate::registry::SemConvRegistry;
+    #[cfg(feature = "io")]
     use crate::registry_repo::RegistryRepo;
     use crate::schema_url::SchemaUrl;
     use crate::semconv::{SemConvSpecV1, SemConvSpecWithProvenance, Versioned};
     use crate::Error;
 
+    #[cfg(feature = "io")]
     use weaver_common::vdir::VirtualDirectoryPath;
 
     #[test]
@@ -287,6 +291,7 @@ mod tests {
         ));
     }
 
+    #[cfg(feature = "io")]
     #[test]
     fn test_from_semconv_specs() {
         let schema_url =

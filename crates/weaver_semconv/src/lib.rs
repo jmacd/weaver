@@ -20,6 +20,7 @@ pub mod json_schema;
 pub mod manifest;
 pub mod provenance;
 pub mod registry;
+#[cfg(feature = "io")]
 pub mod registry_repo;
 pub mod schema_url;
 pub mod semconv;

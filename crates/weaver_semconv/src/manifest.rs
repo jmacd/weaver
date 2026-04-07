@@ -10,7 +10,6 @@
 
 use std::vec;
 
-use crate::registry_repo::LEGACY_REGISTRY_MANIFEST;
 use crate::schema_url::SchemaUrl;
 use crate::stability::Stability;
 use crate::Error;
@@ -21,6 +20,13 @@ use crate::Error::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
 use weaver_common::vdir::VirtualDirectoryPath;
+
+/// The name of the legacy registry manifest file.
+#[deprecated(note = "The registry manifest file is renamed to `manifest.yaml`.")]
+pub const LEGACY_REGISTRY_MANIFEST: &str = "registry_manifest.yaml";
+
+/// The name of the registry manifest file.
+pub const REGISTRY_MANIFEST: &str = "manifest.yaml";
 
 /// The file format version of the publication manifest.
 pub const PUBLICATION_MANIFEST_FILE_FORMAT: &str = "manifest/2.0.0";

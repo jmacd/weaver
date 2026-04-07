@@ -11,6 +11,10 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["io"]
+io = ["weaver_semconv/io"]
+
 [dependencies]
 serde.workspace = true
 serde_yaml.workspace = true
@@ -18,4 +22,4 @@ thiserror.workspace = true
 schemars.workspace = true
 
 semver = {version =  "1.0.27", features = ["serde"]}
-weaver_semconv = { path = "../weaver_semconv" }
+weaver_semconv = { path = "../weaver_semconv", default-features = false }
