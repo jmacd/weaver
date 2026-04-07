@@ -6,8 +6,9 @@ pub mod diagnostic;
 pub mod error;
 pub mod ordered_float;
 pub mod result;
-#[cfg(test)]
+#[cfg(all(test, feature = "io"))]
 pub mod test;
+#[cfg(feature = "io")]
 pub mod vdir;
 
 use crate::diagnostic::{DiagnosticMessage, DiagnosticMessages};

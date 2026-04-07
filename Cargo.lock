@@ -6049,6 +6049,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "weaver_wasm"
+version = "0.22.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "weaver_checker",
+]
+
+[[package]]
 name = "web-sys"
 version = "0.3.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"

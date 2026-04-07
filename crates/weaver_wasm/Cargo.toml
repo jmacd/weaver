@@ -1,0 +1,21 @@
+[package]
+name = "weaver_wasm"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "WebAssembly module for OpenTelemetry Weaver semantic convention validation"
+
+[lib]
+crate-type = ["cdylib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+weaver_checker = { path = "../weaver_checker" }
+serde.workspace = true
+serde_json.workspace = true
